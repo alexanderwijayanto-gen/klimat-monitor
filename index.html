@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klimat Monitor Dashboard - Laporan Mei 2026 (Integrated NOAA)</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            primary: '#197A56',   // Hijau Tua
+                            secondary: '#3EAD92', // Teal/Mint
+                            text: '#4B5563',      // Abu-abu
+                            accent: '#295E7E'     // Biru Tua
+                        }
+                    },
+                    animation: {
+                        fadeIn: 'fadeIn 0.4s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(8px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .risk-badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
+        .risk-kritis { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+        .risk-waspada { background-color: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; }
+        .risk-moderat { background-color: #fef9c3; color: #a16207; border: 1px solid #fef08a; }
+        .risk-rendah { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+        .noaa-badge { background-color: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-gray-800">
+
+    <!-- Header -->
+    <header class="text-white p-6 md:p-8 shadow-md bg-brand-primary relative overflow-hidden">
+        <div class="absolute top-0 right-0 opacity-10 pointer-events-none">
+            <i data-lucide="globe" class="w-64 h-64 transform translate-x-16 -translate-y-16"></i>
+        </div>
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded shadow-sm flex items-center gap-1">
+                        <i data-lucide="zap" class="w-3 h-3"></i> NOAA GLOBAL ALERT
+                    </span>
+                    <span class="text-emerald-200 text-sm font-medium">Monitoring Terintegrasi NOAA & BMKG</span>
+                </div>
+                <h1 class="text-2xl md:text-3xl font-bold mb-2">Klimat Monitor: Laporan OPT Mei</h1>
+                <p class="text-emerald-100 flex items-center gap-2 text-sm md:text-base">
+                    <i data-lucide="calendar" class="w-4 h-4"></i> <span id="meta-periode-text">Periode: 10 April – 11 Mei 2026 (32 Hari)</span>
+                </p>
+            </div>
+            <div class="bg-white/10 px-4 py-3 rounded-lg text-sm backdrop-blur-md border border-white/20 shadow-inner">
+                <span class="opacity-80 block text-xs uppercase tracking-wider mb-1">Update Data Global</span>
+                <strong id="meta-disusun" class="text-base">11 Mei 2026</strong>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto p-4 md:p-6 lg:p-8">
+        
+        <!-- Navigation Tabs -->
+        <div class="flex flex-wrap gap-2 mb-8 border-b border-gray-200 pb-4" id="main-tabs">
+            <button data-target="lokasi" class="tab-btn px-5 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 bg-brand-secondary text-white shadow-md transform -translate-y-0.5 flex items-center gap-2"><i data-lucide="map-pin" class="w-4 h-4"></i>Status Lokasi</button>
+            <button data-target="risiko" class="tab-btn px-5 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 bg-white text-gray-500 hover:bg-gray-100 border border-gray-200 flex items-center gap-2"><i data-lucide="grid" class="w-4 h-4"></i>Matriks Risiko</button>
+            <button data-target="rekomendasi" class="tab-btn px-5 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 bg-white text-gray-500 hover:bg-gray-100 border border-gray-200 flex items-center gap-2"><i data-lucide="shield-check" class="w-4 h-4"></i>Rekomendasi Aksi</button>
+            <button data-target="konteks" class="tab-btn px-5 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 bg-white text-gray-500 hover:bg-gray-100 border border-gray-200 flex items-center gap-2"><i data-lucide="thermometer-sun" class="w-4 h-4"></i>Konteks Iklim & NOAA</button>
+        </div>
+
+        <!-- Tab Content Container -->
+        <div class="min-h-[400px]">
+            
+            <!-- TAB 1: STATUS LOKASI -->
+            <div id="lokasi" class="tab-content active animate-fadeIn">
+                <div class="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                        <i data-lucide="activity" class="text-brand-accent"></i> Pemantauan Risiko Wilayah
+                    </h3>
+                    
+                    <div class="flex gap-2 bg-gray-100 p-1 rounded-lg">
+                        <button class="filter-btn px-3 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-gray-800" data-filter="all">Semua</button>
+                        <button class="filter-btn px-3 py-1.5 text-xs font-bold rounded-md text-red-700 hover:bg-red-50" data-filter="KRITIS">🔴 Kritis</button>
+                        <button class="filter-btn px-3 py-1.5 text-xs font-bold rounded-md text-orange-700 hover:bg-orange-50" data-filter="WASPADA">🟠 Waspada</button>
+                        <button class="filter-btn px-3 py-1.5 text-xs font-bold rounded-md text-yellow-700 hover:bg-yellow-50" data-filter="MODERAT">🟡 Moderat</button>
+                    </div>
+                </div>
+
+                <div id="location-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Injected by JS -->
+                </div>
+            </div>
+
+            <!-- TAB 2: MATRIKS RISIKO -->
+            <div id="risiko" class="tab-content animate-fadeIn">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6">
+                    <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-brand-accent">
+                        <i data-lucide="table-2" class="w-5 h-5"></i> Matriks Risiko Global (Mei 2026)
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse" id="global-risk-table">
+                            <thead>
+                                <tr class="bg-gray-50 border-y border-gray-200">
+                                    <th class="px-4 py-3 text-sm font-semibold text-gray-600">Lokasi</th>
+                                    <th class="px-4 py-3 text-sm font-semibold text-gray-600">Komoditas</th>
+                                    <th class="px-4 py-3 text-sm font-semibold text-gray-600 text-center">Fungi</th>
+                                    <th class="px-4 py-3 text-sm font-semibold text-gray-600 text-center">Hama</th>
+                                    <th class="px-4 py-3 text-sm font-semibold text-gray-600 text-center">Bakteri</th>
+                                    <th class="px-4 py-3 text-sm font-semibold text-gray-600">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: REKOMENDASI -->
+            <div id="rekomendasi" class="tab-content animate-fadeIn">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                    <!-- Prioritas 1 -->
+                    <div class="bg-red-50 border border-red-200 rounded-xl p-6 shadow-sm">
+                        <h3 class="text-red-800 font-bold text-lg mb-4 flex items-center gap-2">
+                            <span class="bg-red-600 text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-sm">1</span>
+                            Prioritas Kritis (Dataran Tinggi)
+                        </h3>
+                        <ul class="space-y-3 text-red-900 text-sm">
+                            <li class="flex items-start gap-2"><i data-lucide="alert-triangle" class="w-4 h-4 mt-0.5 text-red-600"></i> <strong>Drainase Bedengan:</strong> Perbaiki saluran air segera di Lembang, Garut, dan Dieng untuk menekan RH.</li>
+                            <li class="flex items-start gap-2"><i data-lucide="droplets" class="w-4 h-4 mt-0.5 text-red-600"></i> <strong>Fungisida Kontak:</strong> Aplikasi Mankozeb/Klorotalonil setelah hujan untuk cegah Antraknosa & Lodoh.</li>
+                            <li class="flex items-start gap-2"><i data-lucide="shield-check" class="w-4 h-4 mt-0.5 text-red-600"></i> <strong>Sanitasi Tanaman:</strong> Musnahkan tanaman terserang agar tidak menyebar lewat aliran air hujan.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Prioritas 2 -->
+                    <div class="bg-orange-50 border border-orange-200 rounded-xl p-6 shadow-sm">
+                        <h3 class="text-orange-800 font-bold text-lg mb-4 flex items-center gap-2">
+                            <span class="bg-orange-500 text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-sm">2</span>
+                            Antisipasi Transisi (Dataran Rendah)
+                        </h3>
+                        <ul class="space-y-3 text-orange-900 text-sm">
+                            <li class="flex items-start gap-2"><i data-lucide="bug" class="w-4 h-4 mt-0.5 text-orange-500"></i> <strong>Monitoring Hama:</strong> Pantau Ulat Grayak di Brebes & Nganjuk seiring kenaikan suhu (>32°C).</li>
+                            <li class="flex items-start gap-2"><i data-lucide="search" class="w-4 h-4 mt-0.5 text-orange-500"></i> <strong>Scouting Wereng:</strong> Perketat pengamatan di pangkal batang padi di Karawang & Ngawi.</li>
+                            <li class="flex items-start gap-2"><i data-lucide="leaf" class="w-4 h-4 mt-0.5 text-orange-500"></i> <strong>Pupuk N:</strong> Kurangi dosis Urea di wilayah yang masih sering hujan lebat.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                    <h4 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <i data-lucide="clipboard-list" class="text-brand-secondary"></i> Checklist Pengamatan Mingguan
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm text-gray-600">
+                        <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+                            <input type="checkbox" class="w-4 h-4 rounded text-brand-secondary"> Pantau populasi wereng (pangkal batang)
+                        </label>
+                        <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+                            <input type="checkbox" class="w-4 h-4 rounded text-brand-secondary"> Cek bercak ungu/ungu pada daun bawang
+                        </label>
+                        <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+                            <input type="checkbox" class="w-4 h-4 rounded text-brand-secondary"> Pastikan mulsa tidak ada genangan
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: KONTEKS IKLIM & NOAA -->
+            <div id="konteks" class="tab-content animate-fadeIn">
+                <!-- NOAA Global Indicators Section -->
+                <div class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-blue-600 text-white p-4 rounded-xl shadow-lg relative overflow-hidden">
+                        <div class="absolute right-[-10px] top-[-10px] opacity-20"><i data-lucide="waves" class="w-20 h-20"></i></div>
+                        <span class="text-[10px] uppercase font-bold opacity-80 tracking-widest block mb-1">NOAA ENSO Status</span>
+                        <h4 class="text-xl font-black mb-1">EL NIÑO WATCH</h4>
+                        <p class="text-xs opacity-90">Probabilitas Onset: 70% (Mei-Juli 2026)</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                        <span class="text-[10px] uppercase font-bold text-gray-400 tracking-widest block mb-1">NINO3.4 Index</span>
+                        <h4 class="text-xl font-bold text-blue-600">+0.52°C</h4>
+                        <div class="w-full bg-gray-100 h-1.5 rounded-full mt-2 overflow-hidden">
+                            <div class="bg-blue-500 h-full" style="width: 65%"></div>
+                        </div>
+                        <p class="text-[10px] mt-1 text-gray-500 italic">Tren: Pemanasan Cepat (Recharge Phase)</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                        <span class="text-[10px] uppercase font-bold text-gray-400 tracking-widest block mb-1">IOD Phase</span>
+                        <h4 class="text-xl font-bold text-emerald-600">Neutral (0.09)</h4>
+                        <p class="text-[10px] mt-1 text-gray-500">Prediksi: Transisi +IOD (Juni/Juli)</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-brand-primary">
+                        <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-brand-accent">
+                            <i data-lucide="sun" class="w-5 h-5"></i> Dinamika Cuaca Global (NOAA Update)
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-4 leading-relaxed">
+                            Berdasarkan <strong>NOAA CPC Diagnostic Discussion</strong> (Update Mei 2026), kondisi ENSO-netral saat ini sedang bertransisi cepat menuju El Niño. Hal ini ditandai dengan munculnya anomali suhu bawah permukaan air laut di Pasifik Timur yang meluas ke Barat.
+                        </p>
+                        <div class="space-y-3 text-brand-text text-sm">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="wind" class="w-4 h-4 text-brand-secondary"></i>
+                                <span><strong>Westerly Wind Bursts:</strong> Terdeteksi anomali angin barat di Pasifik Tengah, memicu gelombang Kelvin.</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="thermometer-high" class="w-4 h-4 text-orange-500"></i>
+                                <span><strong>Heat Content:</strong> Kandungan panas laut (0-300m) di atas rata-rata.</span>
+                            </div>
+                        </div>
+                    </div>
+            
+                    <div class="bg-blue-50 p-6 rounded-xl border border-blue-100">
+                        <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-blue-800">
+                            <i data-lucide="help-circle" class="w-5 h-5"></i> Dampak Terhadap Pertanian RI
+                        </h3>
+                        <div class="space-y-4 text-sm text-blue-900">
+                            <div class="bg-white/60 p-3 rounded-lg border border-blue-100">
+                                <strong>Kering Lebih Awal:</strong> Kombinasi El Niño Watch dan Transisi +IOD menurut NOAA memperkuat sinyal kemarau yang lebih kering dari rata-rata 30 tahun (Drier Than Normal).
+                            </div>
+                            <div class="bg-white/60 p-3 rounded-lg border border-blue-100">
+                                <strong>Anomali Hama:</strong> Suhu global yang lebih hangat ($>1.5^\circ\text{C}$ di atas normal pada MJJ 2026) akan mengakselerasi siklus hidup ulat grayak dan kutu-kutuan secara masif.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-12 py-10 bg-slate-900 text-gray-400 text-sm">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-gray-800 pb-8 mb-8">
+                <div>
+                    <h4 class="font-bold text-gray-200 mb-2">Sumber Data & Rujukan</h4>
+                    <ul class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1 opacity-70">
+                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-3 h-3 text-brand-secondary"></i> NOAA CPC (Climate Prediction Center)</li>
+                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-3 h-3 text-brand-secondary"></i> Open-Meteo Archive API</li>
+                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-3 h-3 text-brand-secondary"></i> BMKG Indonesia (Proyeksi Lokal)</li>
+                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-3 h-3 text-brand-secondary"></i> NOAA NCEI (Global Climate Report)</li>
+                    </ul>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs italic">Dihasilkan oleh Sistem Otomasi Klimat Monitor</p>
+                    <p class="font-bold text-brand-secondary">Versi 1.2.2-Integrated-NOAA</p>
+                </div>
+            </div>
+            <div class="text-center opacity-40 text-[10px] uppercase tracking-widest">
+                &copy; 2026 Klimat Monitor Integration — Data NOAA Terupdate per 11 Mei 2026
+            </div>
+        </div>
+    </footer>
+
+    <!-- Logic -->
+    <script>
+        // Data Lokasi Mei 2026
+        const locationData = [
+            { loc: "Karawang", comm: "Padi", phase: "TRANSISI", ch: "142.5 mm", tmax: "33.4°C", rh: "79.2%", hama: "🟠", peny: "🟡", bakt: "🟡", overall: "WASPADA",
+              opt: [{name: "Blas", risk: "MODERAT", desc: "RH malam tinggi pemicu spora"}, {name: "Wereng Coklat", risk: "PENINGKATAN", desc: "Migrasi akibat suhu hangat"}]
+            },
+            { loc: "Lembang", comm: "Cabai, Tomat", phase: "HUJAN", ch: "298.0 mm", tmax: "24.8°C", rh: "87.5%", hama: "🟠", peny: "🔴", bakt: "🟠", overall: "KRITIS",
+              opt: [{name: "Antraknosa", risk: "SANGAT TINGGI", desc: "RH >85% sebaran via air"}, {name: "Busuk Daun", risk: "TINGGI", desc: "Dingin & lembab ekstrem"}]
+            },
+            { loc: "Garut", comm: "Cabai, Bawang", phase: "HUJAN", ch: "210.5 mm", tmax: "28.9°C", rh: "85.1%", hama: "🟠", peny: "🔴", bakt: "🔴", overall: "KRITIS",
+              opt: [{name: "Patek (Antraknosa)", risk: "SANGAT TINGGI", desc: "Spora menyebar via percikan air"}, {name: "Bercak Ungu", risk: "KRITIS", desc: "Hujan malam pemicu utama"}]
+            },
+            { loc: "Dieng", comm: "Kentang", phase: "HUJAN LEBAT", ch: "385.2 mm", tmax: "21.2°C", rh: "92.8%", hama: "🟡", peny: "🔴", bakt: "🟠", overall: "KRITIS",
+              opt: [{name: "Lodoh (Phytophthora)", risk: "SANGAT TINGGI", desc: "ZONA MERAH: RH kritis >90%"}, {name: "Nematoda Sista", risk: "TINGGI", desc: "Sebaran via air permukaan"}]
+            },
+            { loc: "Probolinggo", comm: "Kentang", phase: "KERING", ch: "75.4 mm", tmax: "33.8°C", rh: "71.5%", hama: "🟠", peny: "🟡", bakt: "🟡", overall: "MODERAT",
+              opt: [{name: "Penggerek Umbi", risk: "MODERAT", desc: "Akselerasi siklus suhu panas"}]
+            },
+            { loc: "Grobogan", comm: "Jagung", phase: "TRANSISI", ch: "195.8 mm", tmax: "32.5°C", rh: "82.4%", hama: "🟠", peny: "🟠", bakt: "🟡", overall: "WASPADA",
+              opt: [{name: "Karat Daun", risk: "MODERAT", desc: "Suhu 20-25C di sela hujan"}]
+            },
+            { loc: "Ngawi", comm: "Padi", phase: "TRANSISI", ch: "160.2 mm", tmax: "31.8°C", rh: "81.0%", hama: "🟠", peny: "🟠", bakt: "🟡", overall: "WASPADA",
+              opt: [{name: "Wereng Coklat", risk: "WASPADA", desc: "Peningkatan populasi merata"}]
+            },
+            { loc: "Karo", comm: "Cabai, Tomat", phase: "HUJAN", ch: "245.3 mm", tmax: "23.9°C", rh: "89.2%", hama: "🟠", peny: "🔴", bakt: "🟠", overall: "KRITIS",
+              opt: [{name: "Antraknosa", risk: "SANGAT TINGGI", desc: "Hujan intensitas tinggi"}]
+            },
+            { loc: "Kerinci", comm: "Kentang", phase: "HUJAN", ch: "340.0 mm", tmax: "19.1°C", rh: "91.5%", hama: "🟡", peny: "🔴", bakt: "🟠", overall: "KRITIS",
+              opt: [{name: "Busuk Daun", risk: "SANGAT TINGGI", desc: "Malam dingin & basah"}]
+            },
+            { loc: "Brebes", comm: "Bawang Merah", phase: "TRANSISI", ch: "155.4 mm", tmax: "32.7°C", rh: "80.6%", hama: "🔴", peny: "🟠", bakt: "🟡", overall: "WASPADA",
+              opt: [{name: "Ulat Grayak", risk: "TINGGI", desc: "Suhu panas percepat siklus"}, {name: "Antraknosa", risk: "MODERAT", desc: "Risiko jika hujan mendadak"}]
+            },
+            { loc: "Nganjuk", comm: "Bawang Merah", phase: "TRANSISI", ch: "115.8 mm", tmax: "32.2°C", rh: "78.9%", hama: "🔴", peny: "🟡", bakt: "🟡", overall: "WASPADA",
+              opt: [{name: "Ulat Grayak", risk: "TINGGI", desc: "Aktivitas larva di suhu panas"}]
+            }
+        ];
+
+        function getRiskClass(overall) {
+            if (overall === 'KRITIS') return 'risk-kritis';
+            if (overall === 'WASPADA') return 'risk-waspada';
+            if (overall === 'MODERAT') return 'risk-moderat';
+            return 'risk-rendah';
+        }
+
+        function getStatusIcon(overall) {
+            if (overall === 'KRITIS') return '<i data-lucide="alert-circle" class="w-3 h-3"></i>';
+            if (overall === 'WASPADA') return '<i data-lucide="alert-triangle" class="w-3 h-3"></i>';
+            return '<i data-lucide="check" class="w-3 h-3"></i>';
+        }
+
+        function renderCards(filter = 'all') {
+            const container = document.getElementById('location-cards-container');
+            container.innerHTML = '';
+            const filtered = filter === 'all' ? locationData : locationData.filter(d => d.overall === filter);
+
+            filtered.forEach(loc => {
+                const opts = loc.opt.map(o => `
+                    <div class="mb-2 last:mb-0 p-2 bg-slate-50 rounded border border-gray-100">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-xs font-bold text-gray-700">${o.name}</span>
+                            <span class="text-[9px] px-1.5 py-0.5 rounded-full font-black ${o.risk.includes('SANGAT') || o.risk === 'TINGGI' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}">${o.risk}</span>
+                        </div>
+                        <p class="text-[10px] text-gray-500">${o.desc}</p>
+                    </div>
+                `).join('');
+
+                container.insertAdjacentHTML('beforeend', `
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all">
+                        <div class="h-1.5 ${loc.overall === 'KRITIS' ? 'bg-red-500' : 'bg-orange-400'}"></div>
+                        <div class="p-5">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 class="font-bold text-gray-800">${loc.loc}</h4>
+                                    <span class="text-[10px] font-bold text-brand-secondary uppercase">${loc.comm}</span>
+                                </div>
+                                <span class="risk-badge ${getRiskClass(loc.overall)}">
+                                    ${getStatusIcon(loc.overall)} ${loc.overall}
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mb-4">
+                                <div class="bg-slate-50 p-2 rounded flex items-center gap-2">
+                                    <i data-lucide="cloud-rain" class="w-3 h-3 text-blue-400"></i>
+                                    <span class="text-[10px] text-gray-600">${loc.ch}</span>
+                                </div>
+                                <div class="bg-slate-50 p-2 rounded flex items-center gap-2">
+                                    <i data-lucide="thermometer" class="w-3 h-3 text-orange-400"></i>
+                                    <span class="text-[10px] text-gray-600">${loc.tmax}</span>
+                                </div>
+                            </div>
+                            <div class="border-t border-gray-50 pt-3">
+                                ${opts}
+                            </div>
+                        </div>
+                    </div>
+                `);
+            });
+            lucide.createIcons();
+        }
+
+        function renderTable() {
+            const tbody = document.querySelector('#global-risk-table tbody');
+            tbody.innerHTML = locationData.map(l => `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-4 py-3 font-bold text-sm text-gray-800">${l.loc}</td>
+                    <td class="px-4 py-3 text-xs text-gray-500">${l.comm}</td>
+                    <td class="px-4 py-3 text-center">${l.peny}</td>
+                    <td class="px-4 py-3 text-center">${l.hama}</td>
+                    <td class="px-4 py-3 text-center">${l.bakt}</td>
+                    <td class="px-4 py-3">
+                        <span class="risk-badge ${getRiskClass(l.overall)} text-[10px]">
+                            ${l.overall}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Init Tabs
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => {
+                    b.classList.remove('bg-brand-secondary', 'text-white', 'shadow-md', '-translate-y-0.5');
+                    b.classList.add('bg-white', 'text-gray-500');
+                });
+                btn.classList.replace('bg-white', 'bg-brand-secondary');
+                btn.classList.replace('text-gray-500', 'text-white');
+                btn.classList.add('shadow-md', '-translate-y-0.5');
+
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                const target = document.getElementById(btn.dataset.target);
+                if (target) target.classList.add('active');
+            });
+        });
+
+        // Init Filters
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => {
+                    b.classList.replace('bg-white', 'bg-transparent');
+                    b.classList.remove('shadow-sm');
+                });
+                btn.classList.replace('bg-transparent', 'bg-white');
+                btn.classList.add('shadow-sm');
+                renderCards(btn.dataset.filter);
+            });
+        });
+
+        // Initialize
+        function init() {
+            renderCards();
+            renderTable();
+            lucide.createIcons();
+        }
+
+        init();
+    </script>
+</body>
+</html>
